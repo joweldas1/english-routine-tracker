@@ -1,205 +1,347 @@
 import React, { useState, useEffect } from 'react';
-import Navbar from './components/Navbar';
-import StatsBanner from './components/StatsBanner';
-import DailyRoutine from './components/DailyRoutine';
-import SpeechPractice from './components/SpeechPractice';
-import VocabularyVault from './components/VocabularyVault';
-import AiPracticeCards from './components/AiPracticeCards';
-import DailyJournal from './components/DailyJournal';
-import { INITIAL_ROUTINE, VOCABULARY_LIST } from './data/initialData';
-import { CheckSquare, Mic, BookOpen, Bot, PenTool, Sparkles } from 'lucide-react';
+import Header from './components/Header';
+import BottomNav from './components/BottomNav';
+import TodayView from './components/TodayView';
+import PlanView from './components/PlanView';
+import VocabularyView from './components/VocabularyView';
+import ErrorLogView from './components/ErrorLogView';
+import SpeakingView from './components/SpeakingView';
+import ProgressView from './components/ProgressView';
+import SettingsView from './components/SettingsView';
+
+import {
+  loadInitialState,
+  saveStateToLocalStorage,
+  exportDataAsJSON,
+  importDataFromJSON,
+  clearAllData
+} from './utils/storage';
+import {
+  calculateCurrentWeek,
+  calculateStreak,
+  getDaysCompletedThisWeek,
+  getTodayDateString
+} from './utils/dateUtils';
+import {
+  DAILY_TASKS,
+  INITIAL_VOCABULARY,
+  INITIAL_ERROR_LOG,
+  INITIAL_PROGRESS_TRACKER
+} from './data/routine';
 
 export default function App() {
-  const [activeTab, setActiveTab] = useState('routine'); // 'routine', 'speech', 'vocab', 'ai', 'journal'
+  const [appState, setAppState] = useState(() => loadInitialState());
+  const [activeTab, setActiveTab] = useState('today');
 
-  // Routine state
-  const [routine, setRoutine] = useState(() => {
-    const saved = localStorage.getItem('fluent_routine');
-    return saved ? JSON.parse(saved) : INITIAL_ROUTINE;
-  });
+  const {
+    startDate,
+    theme,
+    dailyLog,
+    vocabulary,
+    errorLog,
+    interviewData,
+    progressTracker
+  } = appState;
 
-  // Vocabulary state
-  const [words, setWords] = useState(() => {
-    const saved = localStorage.getItem('fluent_vocab');
-    return saved ? JSON.parse(saved) : VOCABULARY_LIST;
-  });
-
-  // Journal entries state
-  const [journalEntries, setJournalEntries] = useState(() => {
-    const saved = localStorage.getItem('fluent_journal');
-    return saved ? JSON.parse(saved) : [];
-  });
-
-  // Streak state
-  const [streak, setStreak] = useState(() => {
-    const saved = localStorage.getItem('fluent_streak');
-    return saved ? parseInt(saved, 10) : 1;
-  });
-
-  // Sync to localStorage
+  // Sync state changes to localStorage
   useEffect(() => {
-    localStorage.setItem('fluent_routine', JSON.stringify(routine));
-  }, [routine]);
+    saveStateToLocalStorage(appState);
+  }, [appState]);
 
+  // Apply Theme to document.documentElement
   useEffect(() => {
-    localStorage.setItem('fluent_vocab', JSON.stringify(words));
-  }, [words]);
+    const applyTheme = (themeMode) => {
+      if (themeMode === 'system') {
+        const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+        document.documentElement.setAttribute('data-theme', prefersDark ? 'dark' : 'light');
+      } else {
+        document.documentElement.setAttribute('data-theme', themeMode);
+      }
+    };
 
-  useEffect(() => {
-    localStorage.setItem('fluent_journal', JSON.stringify(journalEntries));
-  }, [journalEntries]);
+    applyTheme(theme);
 
-  useEffect(() => {
-    localStorage.setItem('fluent_streak', streak.toString());
-  }, [streak]);
+    if (theme === 'system') {
+      const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+      const listener = (e) => {
+        document.documentElement.setAttribute('data-theme', e.matches ? 'dark' : 'light');
+      };
+      mediaQuery.addEventListener('change', listener);
+      return () => mediaQuery.removeEventListener('change', listener);
+    }
+  }, [theme]);
 
-  // Routine Handlers
-  const handleToggleTask = (id) => {
-    setRoutine((prev) =>
-      prev.map((t) => (t.id === id ? { ...t, completed: !t.completed } : t))
-    );
+  // Computed values
+  const todayStr = getTodayDateString();
+  const currentWeek = calculateCurrentWeek(startDate);
+  const streak = calculateStreak(dailyLog);
+  const daysDoneThisWeek = getDaysCompletedThisWeek(dailyLog, startDate);
+
+  // Handlers for Today's Routine
+  const handleToggleTask = (dateKey, taskId, duration) => {
+    setAppState((prev) => {
+      const currentDay = prev.dailyLog[dateKey] || {
+        tasks: {},
+        minutesDone: 0,
+        isDayComplete: false
+      };
+
+      const updatedTasks = {
+        ...currentDay.tasks,
+        [taskId]: !currentDay.tasks[taskId]
+      };
+
+      // Recalculate minutes completed
+      let totalMin = 0;
+      DAILY_TASKS.forEach((t) => {
+        if (updatedTasks[t.id]) totalMin += t.duration;
+      });
+
+      // Mark complete if 5 or all tasks completed
+      const doneCount = Object.values(updatedTasks).filter(Boolean).length;
+      const isComplete = doneCount >= 5;
+
+      return {
+        ...prev,
+        dailyLog: {
+          ...prev.dailyLog,
+          [dateKey]: {
+            tasks: updatedTasks,
+            minutesDone: totalMin,
+            isDayComplete: isComplete
+          }
+        }
+      };
+    });
   };
 
-  const handleAddTask = (newTask) => {
-    setRoutine((prev) => [...prev, newTask]);
-  };
-
-  const handleDeleteTask = (id) => {
-    setRoutine((prev) => prev.filter((t) => t.id !== id));
-  };
-
-  const handleResetRoutine = () => {
-    if (window.confirm('Reset today’s routine checklist to start fresh?')) {
-      setRoutine((prev) => prev.map((t) => ({ ...t, completed: false })));
+  const handleResetToday = () => {
+    if (window.confirm('আজকের সমস্ত টাস্ক রিসেট করতে চান?')) {
+      setAppState((prev) => ({
+        ...prev,
+        dailyLog: {
+          ...prev.dailyLog,
+          [todayStr]: {
+            tasks: {},
+            minutesDone: 0,
+            isDayComplete: false
+          }
+        }
+      }));
     }
   };
 
-  // Vocab Handlers
-  const handleToggleMastered = (id) => {
-    setWords((prev) =>
-      prev.map((w) => (w.id === id ? { ...w, mastered: !w.mastered } : w))
-    );
+  // Vocabulary Handlers
+  const handleAddWord = (newWord) => {
+    setAppState((prev) => ({
+      ...prev,
+      vocabulary: [newWord, ...prev.vocabulary]
+    }));
   };
 
-  const handleAddWord = (newWord) => {
-    setWords((prev) => [newWord, ...prev]);
+  const handleToggleReviewed = (id) => {
+    setAppState((prev) => ({
+      ...prev,
+      vocabulary: prev.vocabulary.map((w) =>
+        w.id === id ? { ...w, reviewed: !w.reviewed } : w
+      )
+    }));
   };
 
   const handleDeleteWord = (id) => {
-    setWords((prev) => prev.filter((w) => w.id !== id));
+    if (window.confirm('এই শব্দটি মুছে ফেলতে চান?')) {
+      setAppState((prev) => ({
+        ...prev,
+        vocabulary: prev.vocabulary.filter((w) => w.id !== id)
+      }));
+    }
   };
 
-  // Journal Handlers
-  const handleSaveJournal = (entry) => {
-    setJournalEntries((prev) => [entry, ...prev]);
-    // Also mark journal task in routine as complete if exists
-    setRoutine((prev) =>
-      prev.map((t) => (t.id === 'journal' ? { ...t, completed: true } : t))
-    );
+  // Error Log Handlers
+  const handleAddError = (newError) => {
+    setAppState((prev) => ({
+      ...prev,
+      errorLog: [newError, ...prev.errorLog]
+    }));
   };
 
-  const handleDeleteJournal = (id) => {
-    setJournalEntries((prev) => prev.filter((e) => e.id !== id));
+  const handleEditError = (id, updatedFields) => {
+    setAppState((prev) => ({
+      ...prev,
+      errorLog: prev.errorLog.map((err) =>
+        err.id === id ? { ...err, ...updatedFields } : err
+      )
+    }));
   };
 
-  const completedCount = routine.filter((t) => t.completed).length;
-  const masteredWordsCount = words.filter((w) => w.mastered).length;
+  const handleDeleteError = (id) => {
+    if (window.confirm('এই ভুলের রেকর্ডটি মুছে ফেলতে চান?')) {
+      setAppState((prev) => ({
+        ...prev,
+        errorLog: prev.errorLog.filter((err) => err.id !== id)
+      }));
+    }
+  };
 
-  const tabs = [
-    { id: 'routine', label: 'Daily Routine', icon: CheckSquare },
-    { id: 'speech', label: 'Voice & Speech', icon: Mic },
-    { id: 'vocab', label: 'Vocabulary', icon: BookOpen },
-    { id: 'ai', label: 'AI Scenarios', icon: Bot },
-    { id: 'journal', label: 'Journal', icon: PenTool }
-  ];
+  // Speaking & Interview Handlers
+  const handleUpdateInterviewAnswer = (questionId, data) => {
+    setAppState((prev) => ({
+      ...prev,
+      interviewData: {
+        ...prev.interviewData,
+        [questionId]: data
+      }
+    }));
+  };
+
+  const handleTogglePracticed = (questionId) => {
+    setAppState((prev) => {
+      const current = prev.interviewData[questionId] || {
+        practiced: false,
+        notes: '',
+        star: { s: '', t: '', a: '', r: '' }
+      };
+
+      return {
+        ...prev,
+        interviewData: {
+          ...prev.interviewData,
+          [questionId]: {
+            ...current,
+            practiced: !current.practiced
+          }
+        }
+      };
+    });
+  };
+
+  // Progress Tracker Handlers
+  const handleUpdateProgressTracker = (updatedTracker) => {
+    setAppState((prev) => ({
+      ...prev,
+      progressTracker: updatedTracker
+    }));
+  };
+
+  // Settings Handlers
+  const handleUpdateStartDate = (newDate) => {
+    setAppState((prev) => ({ ...prev, startDate: newDate }));
+  };
+
+  const handleUpdateTheme = (newTheme) => {
+    setAppState((prev) => ({ ...prev, theme: newTheme }));
+  };
+
+  const handleToggleTheme = () => {
+    const nextTheme = theme === 'dark' ? 'light' : 'dark';
+    handleUpdateTheme(nextTheme);
+  };
+
+  const handleExportJSON = () => {
+    exportDataAsJSON(appState);
+  };
+
+  const handleImportJSON = async (file) => {
+    const data = await importDataFromJSON(file);
+    setAppState((prev) => ({
+      ...prev,
+      ...data
+    }));
+  };
+
+  const handleResetAllData = () => {
+    clearAllData();
+    setAppState({
+      startDate: getTodayDateString(),
+      theme: 'system',
+      dailyLog: {},
+      vocabulary: INITIAL_VOCABULARY,
+      errorLog: INITIAL_ERROR_LOG,
+      interviewData: {},
+      progressTracker: INITIAL_PROGRESS_TRACKER
+    });
+  };
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans">
-      {/* Top Navigation */}
-      <Navbar
+    <div className="app-container">
+      {/* Top Header */}
+      <Header
+        currentWeek={currentWeek}
         streak={streak}
-        onResetRoutine={handleResetRoutine}
-        completedCount={completedCount}
-        totalCount={routine.length}
+        theme={theme}
+        onToggleTheme={handleToggleTheme}
+        daysDoneThisWeek={daysDoneThisWeek}
       />
 
-      {/* Main Container */}
-      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-8 py-6 space-y-6">
-        {/* Banner with Stats */}
-        <StatsBanner
-          streak={streak}
-          completedCount={completedCount}
-          totalCount={routine.length}
-          masteredWordsCount={masteredWordsCount}
-        />
+      {/* Navigation (Tabs on desktop top / mobile bottom) */}
+      <BottomNav activeTab={activeTab} onSelectTab={(tab) => setActiveTab(tab)} />
 
-        {/* Tab Navigation Pill Bar */}
-        <div className="flex items-center gap-2 overflow-x-auto pb-1 border-b border-slate-800/80">
-          {tabs.map((tab) => {
-            const Icon = tab.icon;
-            const isActive = activeTab === tab.id;
-            return (
-              <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
-                className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-all cursor-pointer ${
-                  isActive
-                    ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/30'
-                    : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900'
-                }`}
-              >
-                <Icon className={`w-4 h-4 ${isActive ? 'text-white' : 'text-slate-400'}`} />
-                <span>{tab.label}</span>
-              </button>
-            );
-          })}
-        </div>
+      {/* Main Content Area */}
+      <main className="main-content" role="main">
+        {activeTab === 'today' && (
+          <TodayView
+            currentWeek={currentWeek}
+            dailyLog={dailyLog}
+            todayStr={todayStr}
+            onToggleTask={handleToggleTask}
+            onResetToday={handleResetToday}
+            streak={streak}
+            daysDoneThisWeek={daysDoneThisWeek}
+            onNavigateTab={(tab) => setActiveTab(tab)}
+          />
+        )}
 
-        {/* Tab Views */}
-        <div className="pt-2">
-          {activeTab === 'routine' && (
-            <DailyRoutine
-              routine={routine}
-              onToggleTask={handleToggleTask}
-              onAddTask={handleAddTask}
-              onDeleteTask={handleDeleteTask}
-              onNavigateTab={(tab) => setActiveTab(tab)}
-            />
-          )}
+        {activeTab === 'plan' && <PlanView currentWeek={currentWeek} />}
 
-          {activeTab === 'speech' && <SpeechPractice />}
+        {activeTab === 'vocab' && (
+          <VocabularyView
+            vocabulary={vocabulary}
+            onAddWord={handleAddWord}
+            onToggleReviewed={handleToggleReviewed}
+            onDeleteWord={handleDeleteWord}
+          />
+        )}
 
-          {activeTab === 'vocab' && (
-            <VocabularyVault
-              words={words}
-              onToggleMastered={handleToggleMastered}
-              onAddWord={handleAddWord}
-              onDeleteWord={handleDeleteWord}
-            />
-          )}
+        {activeTab === 'error' && (
+          <ErrorLogView
+            errorLog={errorLog}
+            currentWeek={currentWeek}
+            onAddError={handleAddError}
+            onEditError={handleEditError}
+            onDeleteError={handleDeleteError}
+          />
+        )}
 
-          {activeTab === 'ai' && <AiPracticeCards />}
+        {activeTab === 'speaking' && (
+          <SpeakingView
+            interviewData={interviewData}
+            onUpdateInterviewAnswer={handleUpdateInterviewAnswer}
+            onTogglePracticed={handleTogglePracticed}
+          />
+        )}
 
-          {activeTab === 'journal' && (
-            <DailyJournal
-              entries={journalEntries}
-              onSaveEntry={handleSaveJournal}
-              onDeleteEntry={handleDeleteJournal}
-            />
-          )}
-        </div>
+        {activeTab === 'progress' && (
+          <ProgressView
+            progressTracker={progressTracker}
+            vocabulary={vocabulary}
+            dailyLog={dailyLog}
+            errorLog={errorLog}
+            onUpdateProgressTracker={handleUpdateProgressTracker}
+          />
+        )}
+
+        {activeTab === 'settings' && (
+          <SettingsView
+            startDate={startDate}
+            onUpdateStartDate={handleUpdateStartDate}
+            theme={theme}
+            onUpdateTheme={handleUpdateTheme}
+            onExportJSON={handleExportJSON}
+            onImportJSON={handleImportJSON}
+            onResetAllData={handleResetAllData}
+          />
+        )}
       </main>
-
-      {/* Footer */}
-      <footer className="border-t border-slate-900 py-6 text-center text-xs text-slate-500">
-        <div className="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-3">
-          <p>© 2026 FluentHabit • English Routine & Speaking Practice Web App</p>
-          <div className="flex items-center gap-1.5 text-indigo-400">
-            <Sparkles className="w-3.5 h-3.5" />
-            <span>Practice with AI Tutor Daily</span>
-          </div>
-        </div>
-      </footer>
     </div>
   );
 }
