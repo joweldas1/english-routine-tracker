@@ -3,7 +3,7 @@ import React from 'react';
 export default function ProgressRing({
   minutesDone = 0,
   totalMinutes = 80,
-  size = 100,
+  size = 110,
   strokeWidth = 9
 }) {
   const radius = (size - strokeWidth) / 2;
@@ -15,7 +15,18 @@ export default function ProgressRing({
   return (
     <div className="ring-visual" style={{ width: size, height: size }}>
       <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
-        {/* Background track circle */}
+        <defs>
+          <linearGradient id="cyberProgressGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stopColor="var(--accent)" />
+            <stop offset="100%" stopColor="var(--cyan)" />
+          </linearGradient>
+          <filter id="ringGlow" x="-20%" y="-20%" width="140%" height="140%">
+            <feGaussianBlur stdDeviation="3" result="blur" />
+            <feComposite in="SourceGraphic" in2="blur" operator="over" />
+          </filter>
+        </defs>
+
+        {/* Track circle */}
         <circle
           cx={size / 2}
           cy={size / 2}
@@ -24,21 +35,23 @@ export default function ProgressRing({
           stroke="var(--border)"
           strokeWidth={strokeWidth}
         />
-        {/* Animated Progress circle */}
+
+        {/* Active glowing progress circle */}
         <circle
           cx={size / 2}
           cy={size / 2}
           r={radius}
           fill="transparent"
-          stroke="var(--accent)"
+          stroke="url(#cyberProgressGrad)"
           strokeWidth={strokeWidth}
           strokeDasharray={circumference}
           strokeDashoffset={offset}
           strokeLinecap="round"
+          filter="url(#ringGlow)"
           style={{
             transform: 'rotate(-90deg)',
             transformOrigin: '50% 50%',
-            transition: 'stroke-dashoffset 0.4s ease'
+            transition: 'stroke-dashoffset 0.5s cubic-bezier(0.4, 0, 0.2, 1)'
           }}
         />
       </svg>

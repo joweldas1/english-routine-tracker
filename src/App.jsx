@@ -8,6 +8,7 @@ import ErrorLogView from './components/ErrorLogView';
 import SpeakingView from './components/SpeakingView';
 import ProgressView from './components/ProgressView';
 import SettingsView from './components/SettingsView';
+import TotalResetModal from './components/TotalResetModal';
 
 import {
   loadInitialState,
@@ -28,10 +29,13 @@ import {
   INITIAL_ERROR_LOG,
   INITIAL_PROGRESS_TRACKER
 } from './data/routine';
+import confetti from 'canvas-confetti';
 
 export default function App() {
   const [appState, setAppState] = useState(() => loadInitialState());
   const [activeTab, setActiveTab] = useState('today');
+  const [isResetModalOpen, setIsResetModalOpen] = useState(false);
+  const [toastMessage, setToastMessage] = useState(null);
 
   const {
     startDate,
@@ -70,6 +74,11 @@ export default function App() {
       return () => mediaQuery.removeEventListener('change', listener);
     }
   }, [theme]);
+
+  const showToast = (msg) => {
+    setToastMessage(msg);
+    setTimeout(() => setToastMessage(null), 3000);
+  };
 
   // Computed values
   const todayStr = getTodayDateString();
@@ -128,6 +137,7 @@ export default function App() {
           }
         }
       }));
+      showToast('আজকের চেকলিস্ট রিসেট করা হয়েছে!');
     }
   };
 
@@ -137,6 +147,7 @@ export default function App() {
       ...prev,
       vocabulary: [newWord, ...prev.vocabulary]
     }));
+    showToast(`নতুন শব্দ "${newWord.word}" যুক্ত হয়েছে!`);
   };
 
   const handleToggleReviewed = (id) => {
@@ -163,6 +174,7 @@ export default function App() {
       ...prev,
       errorLog: [newError, ...prev.errorLog]
     }));
+    showToast('নতুন ভুলের রেকর্ড সংরক্ষিত হয়েছে!');
   };
 
   const handleEditError = (id, updatedFields) => {
@@ -172,6 +184,7 @@ export default function App() {
         err.id === id ? { ...err, ...updatedFields } : err
       )
     }));
+    showToast('ভুলের রেকর্ড আপডেট করা হয়েছে!');
   };
 
   const handleDeleteError = (id) => {
@@ -202,13 +215,18 @@ export default function App() {
         star: { s: '', t: '', a: '', r: '' }
       };
 
+      const willBePracticed = !current.practiced;
+      if (willBePracticed) {
+        confetti({ particleCount: 60, spread: 55, origin: { y: 0.7 } });
+      }
+
       return {
         ...prev,
         interviewData: {
           ...prev.interviewData,
           [questionId]: {
             ...current,
-            practiced: !current.practiced
+            practiced: willBePracticed
           }
         }
       };
@@ -226,6 +244,7 @@ export default function App() {
   // Settings Handlers
   const handleUpdateStartDate = (newDate) => {
     setAppState((prev) => ({ ...prev, startDate: newDate }));
+    showToast('শুরুর তারিখ আপডেট করা হয়েছে!');
   };
 
   const handleUpdateTheme = (newTheme) => {
@@ -239,6 +258,7 @@ export default function App() {
 
   const handleExportJSON = () => {
     exportDataAsJSON(appState);
+    showToast('JSON ব্যাকআপ ডাউনলোড সম্পন্ন হয়েছে!');
   };
 
   const handleImportJSON = async (file) => {
@@ -247,19 +267,60 @@ export default function App() {
       ...prev,
       ...data
     }));
+    showToast('ব্যাকআপ সফলভাবে রিস্টোর হয়েছে!');
   };
 
-  const handleResetAllData = () => {
+  // TOTAL FACTORY RESET
+  const handleTotalReset = (resetType = 'clean') => {
     clearAllData();
-    setAppState({
-      startDate: getTodayDateString(),
-      theme: 'system',
-      dailyLog: {},
-      vocabulary: INITIAL_VOCABULARY,
-      errorLog: INITIAL_ERROR_LOG,
-      interviewData: {},
-      progressTracker: INITIAL_PROGRESS_TRACKER
-    });
+
+    // Play subtle audio tone
+    try {
+      const AudioCtx = window.AudioContext || window.webkitAudioContext;
+      if (AudioCtx) {
+        const ctx = new AudioCtx();
+        const osc = ctx.createOscillator();
+        osc.connect(ctx.destination);
+        osc.frequency.setValueAtTime(440, ctx.currentTime);
+        osc.start();
+        osc.stop(ctx.currentTime + 0.25);
+      }
+    } catch (e) {}
+
+    if (resetType === 'clean') {
+      const emptyState = {
+        startDate: getTodayDateString(),
+        theme: 'dark',
+        dailyLog: {},
+        vocabulary: [],
+        errorLog: [],
+        interviewData: {},
+        progressTracker: INITIAL_PROGRESS_TRACKER.map((r) => ({
+          ...r,
+          newWords: 0,
+          speakingMinutes: 0,
+          completedDays: 0,
+          repeatedMistakes: 0,
+          notes: ''
+        }))
+      };
+      setAppState(emptyState);
+      saveStateToLocalStorage(emptyState);
+      showToast('টোটাল ফ্যাক্টরি রিসেট সম্পন্ন! সবকিছু শূন্য থেকে ফ্রেশ শুরু হলো।');
+    } else {
+      const templateState = {
+        startDate: getTodayDateString(),
+        theme: 'dark',
+        dailyLog: {},
+        vocabulary: INITIAL_VOCABULARY,
+        errorLog: INITIAL_ERROR_LOG,
+        interviewData: {},
+        progressTracker: INITIAL_PROGRESS_TRACKER
+      };
+      setAppState(templateState);
+      saveStateToLocalStorage(templateState);
+      showToast('ডিফল্ট টেমপ্লেট সহ অ্যাপটি রিস্টার্ট হলো!');
+    }
   };
 
   return (
@@ -271,6 +332,7 @@ export default function App() {
         theme={theme}
         onToggleTheme={handleToggleTheme}
         daysDoneThisWeek={daysDoneThisWeek}
+        onOpenTotalReset={() => setIsResetModalOpen(true)}
       />
 
       {/* Navigation (Tabs on desktop top / mobile bottom) */}
@@ -338,10 +400,47 @@ export default function App() {
             onUpdateTheme={handleUpdateTheme}
             onExportJSON={handleExportJSON}
             onImportJSON={handleImportJSON}
-            onResetAllData={handleResetAllData}
+            onOpenTotalReset={() => setIsResetModalOpen(true)}
           />
         )}
       </main>
+
+      {/* Dedicated Futuristic Total Reset Modal */}
+      <TotalResetModal
+        isOpen={isResetModalOpen}
+        onClose={() => setIsResetModalOpen(false)}
+        onConfirmReset={handleTotalReset}
+      />
+
+      {/* Futuristic Floating Toast Notification */}
+      {toastMessage && (
+        <div
+          style={{
+            position: 'fixed',
+            bottom: '75px',
+            left: '50%',
+            transform: 'translateX(-50%)',
+            zIndex: 90,
+            background: 'rgba(15, 23, 42, 0.95)',
+            backdropFilter: 'blur(12px)',
+            border: '1px solid var(--accent)',
+            boxShadow: '0 8px 30px rgba(0, 0, 0, 0.6), 0 0 15px rgba(99, 102, 241, 0.35)',
+            color: '#ffffff',
+            padding: '10px 18px',
+            borderRadius: 'var(--radius-full)',
+            fontSize: '0.84rem',
+            fontWeight: 700,
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            animation: 'fadeIn 0.25s ease-out',
+            pointerEvents: 'none'
+          }}
+        >
+          <span className="pill-pulse-dot" style={{ color: 'var(--accent)' }} />
+          <span>{toastMessage}</span>
+        </div>
+      )}
     </div>
   );
 }

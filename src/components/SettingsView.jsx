@@ -11,7 +11,10 @@ import {
   RotateCcw,
   CheckCircle,
   User,
-  Shield
+  Shield,
+  Trash2,
+  Cpu,
+  Database
 } from 'lucide-react';
 import { USER_NAME } from '../data/routine';
 
@@ -22,7 +25,7 @@ export default function SettingsView({
   onUpdateTheme,
   onExportJSON,
   onImportJSON,
-  onResetAllData
+  onOpenTotalReset
 }) {
   const fileInputRef = useRef(null);
   const [importStatus, setImportStatus] = useState(null);
@@ -40,18 +43,7 @@ export default function SettingsView({
       setTimeout(() => setImportStatus(null), 4000);
     }
 
-    // Reset input value
     if (fileInputRef.current) fileInputRef.current.value = '';
-  };
-
-  const handleResetClick = () => {
-    const confirmText = window.confirm(
-      'আপনি কি নিশ্চিত যে সমস্ত ডাটা রিসেট করতে চান? আপনার সংরক্ষিত শব্দভাণ্ডার, ভুলের লগ এবং রুটিন অগ্রগতি মুছে যাবে।'
-    );
-    if (confirmText) {
-      onResetAllData();
-      alert('সকল ডাটা সফলভাবে রিসেট করা হয়েছে।');
-    }
   };
 
   return (
@@ -59,10 +51,10 @@ export default function SettingsView({
       {/* Header */}
       <div className="card">
         <h2 className="card-title">
-          <span>সেটিংস ও ব্যাকআপ (Settings & Backup)</span>
+          <span>সেটিংস ও কন্ট্রোল প্যানেল (Control Center)</span>
         </h2>
         <div className="card-subtitle">
-          শুরুর তারিখ, থিম মোড এবং সম্পূর্ণ ডাটা ব্যাকআপ বা রিস্টোর করার সুবিধা
+          শুরুর তারিখ, থিম মোড এবং সম্পূর্ণ ডাটা ব্যাকআপ, রিস্টোর ও টোটাল রিসেট সুবিধা
         </div>
       </div>
 
@@ -75,7 +67,7 @@ export default function SettingsView({
           </h3>
         </div>
         <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: '12px' }}>
-          এই তারিখের ওপর ভিত্তি করে অ্যাপটি স্বয়ংক্রিয়ভাবে চলতি সপ্তাহ (সপ্তাহ ১ থেকে ৪) গণনা করবে।
+          এই তারিখের ওপর ভিত্তি করে অ্যাপটি স্বয়ংক্রিয়ভাবে চলতি সপ্তাহ (সপ্তাহ ১ থেকে ৪) গণনা করে।
         </p>
 
         <div style={{ maxWidth: '280px' }}>
@@ -84,6 +76,7 @@ export default function SettingsView({
             value={startDate}
             onChange={(e) => onUpdateStartDate(e.target.value)}
             className="form-input"
+            style={{ fontFamily: 'var(--font-mono)' }}
           />
         </div>
       </div>
@@ -93,28 +86,28 @@ export default function SettingsView({
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
           <Sun size={18} color="var(--warning)" />
           <h3 style={{ fontSize: '0.98rem', fontWeight: 700, color: 'var(--text-primary)' }}>
-            অ্যাপের থিম মোড (App Theme)
+            ইন্টারফেস থিম (Futuristic Appearance)
           </h3>
         </div>
         <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: '12px' }}>
-          আপনার পছন্দমতো লাইট, ডার্ক অথবা সিস্টেম প্রেফারেন্স নির্বাচন করুন।
+          আপনার পছন্দমতো সাইবার ডার্ক, লাইট ল্যাব অথবা সিস্টেম প্রিফারেন্স নির্বাচন করুন।
         </p>
 
         <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-          <button
-            onClick={() => onUpdateTheme('light')}
-            className={`btn ${theme === 'light' ? 'btn-primary' : 'btn-secondary'}`}
-          >
-            <Sun size={15} />
-            <span>Light Theme</span>
-          </button>
-
           <button
             onClick={() => onUpdateTheme('dark')}
             className={`btn ${theme === 'dark' ? 'btn-primary' : 'btn-secondary'}`}
           >
             <Moon size={15} />
-            <span>Dark Theme</span>
+            <span>Cyber Dark</span>
+          </button>
+
+          <button
+            onClick={() => onUpdateTheme('light')}
+            className={`btn ${theme === 'light' ? 'btn-primary' : 'btn-secondary'}`}
+          >
+            <Sun size={15} />
+            <span>Clean Light</span>
           </button>
 
           <button
@@ -122,7 +115,7 @@ export default function SettingsView({
             className={`btn ${theme === 'system' ? 'btn-primary' : 'btn-secondary'}`}
           >
             <Laptop size={15} />
-            <span>System Default</span>
+            <span>System Auto</span>
           </button>
         </div>
       </div>
@@ -130,13 +123,13 @@ export default function SettingsView({
       {/* 3. Backup & Restore (JSON Export / Import) */}
       <div className="card">
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
-          <Download size={18} color="var(--success)" />
+          <Database size={18} color="var(--cyan)" />
           <h3 style={{ fontSize: '0.98rem', fontWeight: 700, color: 'var(--text-primary)' }}>
-            ডাটা ব্যাকআপ ও রিস্টোর (Export / Import JSON)
+            ডাটা ব্যাকআপ ও রিস্টোর (JSON Sync)
           </h3>
         </div>
         <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: '12px' }}>
-          কোনো সার্ভার বা লগইনের প্রয়োজন নেই। আপনার সমস্ত ডাটা একটি JSON ফাইলে ডাউনলোড করে রাখতে পারেন এবং যেকোনো ডিভাইসে আপলোড করে রিস্টোর করতে পারেন।
+          ১০০% লোকাল স্টোরেজ। আপনার সমস্ত ডাটা একটি JSON ফাইলে সেভ করে রাখতে পারেন এবং যেকোনো সময় যেকোনো ব্রাউজারে রিস্টোর করতে পারেন।
         </p>
 
         <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
@@ -179,32 +172,44 @@ export default function SettingsView({
         )}
       </div>
 
-      {/* 4. Danger Zone: Reset Data */}
-      <div className="card" style={{ border: '1px solid var(--danger-soft)' }}>
+      {/* 4. Total Factory Reset (DANGER ZONE) */}
+      <div
+        className="card"
+        style={{
+          border: '1px solid rgba(239, 68, 68, 0.3)',
+          background: 'linear-gradient(135deg, rgba(239, 68, 68, 0.05), var(--bg-card))'
+        }}
+      >
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
           <AlertTriangle size={18} color="var(--danger)" />
-          <h3 style={{ fontSize: '0.98rem', fontWeight: 700, color: 'var(--danger)' }}>
-            ডাটা রিসেট (Danger Zone)
+          <h3 style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--danger)', letterSpacing: '-0.01em' }}>
+            সম্পূর্ণ ফ্যাক্টরি রিসেট (Total Factory Reset)
           </h3>
         </div>
-        <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: '12px' }}>
-          সব ডাটা মুছে ফেলে অ্যাপটিকে প্রারম্ভিক অবস্থায় ফিরিয়ে নিতে চান? (এই কাজ অপরিবর্তনীয়)
+        <p style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', lineHeight: 1.5, marginBottom: '14px' }}>
+          আপনার সব শব্দভাণ্ডার, ভুলের লগ, স্ট্রিক ও প্রগ্রেস ডাটা সম্পূর্ণ রিসেট করে একদম নতুন করে শুরু করতে চান?
         </p>
 
-        <button onClick={handleResetClick} className="btn btn-danger">
-          <RotateCcw size={15} />
-          <span>সকল ডাটা রিসেট করুন (Reset Data)</span>
+        <button
+          onClick={onOpenTotalReset}
+          className="btn btn-danger"
+          style={{ padding: '9px 18px', fontWeight: 700 }}
+        >
+          <RotateCcw size={16} />
+          <span>টোটাল রিসেট কনসোল খুলুন (Open Reset Console)</span>
         </button>
       </div>
 
-      {/* Profile & Routine Meta */}
+      {/* Profile & Machine Spec */}
       <div className="card" style={{ background: 'var(--bg-secondary)', border: '1px dashed var(--border)' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.82rem', color: 'var(--text-muted)' }}>
-          <User size={15} />
-          <span>ব্যবহারকারী: <strong>{USER_NAME}</strong> (Front End / WordPress Developer)</span>
-        </div>
-        <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '4px' }}>
-          English Routine Tracker • 4-Week Comprehensive Spoken English Routine
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.82rem', color: 'var(--text-secondary)' }}>
+            <Cpu size={16} color="var(--accent)" />
+            <span>সিস্টেম ইউজার: <strong>{USER_NAME}</strong> • English Routine Tracker v2.0 (Futuristic Edition)</span>
+          </div>
+          <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.72rem', color: 'var(--text-muted)' }}>
+            LOCAL_STORAGE_PERSISTED: TRUE
+          </span>
         </div>
       </div>
     </div>
