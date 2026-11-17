@@ -1,8 +1,7 @@
 import React, { useState } from 'react';
-import { AlertTriangle, Trash2, RotateCcw, X, ShieldAlert, Sparkles, CheckCircle2 } from 'lucide-react';
+import { AlertTriangle, Trash2, X, ShieldAlert } from 'lucide-react';
 
 export default function TotalResetModal({ isOpen, onClose, onConfirmReset }) {
-  const [resetType, setResetType] = useState('clean'); // 'clean' or 'template'
   const [confirmInput, setConfirmInput] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
 
@@ -14,11 +13,11 @@ export default function TotalResetModal({ isOpen, onClose, onConfirmReset }) {
     if (!isConfirmed) return;
     setIsProcessing(true);
     setTimeout(() => {
-      onConfirmReset(resetType);
+      onConfirmReset('clean');
       setIsProcessing(false);
       setConfirmInput('');
       onClose();
-    }, 400);
+    }, 300);
   };
 
   return (
@@ -40,7 +39,7 @@ export default function TotalResetModal({ isOpen, onClose, onConfirmReset }) {
       <div
         className="card"
         style={{
-          maxWidth: '480px',
+          maxWidth: '460px',
           width: '100%',
           border: '1px solid rgba(239, 68, 68, 0.35)',
           background: 'linear-gradient(145deg, var(--bg-card), var(--bg-secondary))',
@@ -84,7 +83,7 @@ export default function TotalResetModal({ isOpen, onClose, onConfirmReset }) {
             </div>
             <div>
               <div style={{ fontSize: '0.72rem', fontFamily: 'var(--font-mono)', color: 'var(--danger)', letterSpacing: '0.08em', textTransform: 'uppercase', fontWeight: 700 }}>
-                // DANGER ZONE • HARD RESET
+                // DANGER ZONE • FACTORY RESET
               </div>
               <h3 style={{ fontSize: '1.2rem', fontWeight: 800, color: 'var(--text-primary)', letterSpacing: '-0.01em' }}>
                 টোটাল ফ্যাক্টরি রিসেট (Total Reset)
@@ -104,55 +103,8 @@ export default function TotalResetModal({ isOpen, onClose, onConfirmReset }) {
 
         {/* Warning Body */}
         <p style={{ fontSize: '0.84rem', color: 'var(--text-secondary)', lineHeight: 1.5, marginBottom: '18px' }}>
-          আপনি কি নিশ্চিত যে সম্পূর্ণ ডাটা ফ্যাক্টরি রিসেট করতে চান? এর ফলে আপনার <strong>স্ট্রিক (Streak)</strong>, <strong>দৈনিক টাস্ক লগ</strong>, <strong>শব্দভাণ্ডার</strong>, <strong>ভুলের লগ</strong> এবং <strong>ইন্টারভিউ ড্রাফট</strong> স্থায়ীভাবে মুছে যাবে।
+          আপনার সমস্ত স্ট্রিক, টাস্ক ট্র্যাকিং, শব্দভাণ্ডার ও ভুলের লগ সম্পূর্ণ মুছে একদম শূন্য (0) থেকে ফ্রেশ শুরু হবে। কোনো ডামি ডাটা থাকবে না।
         </p>
-
-        {/* Selection Options */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '18px' }}>
-          <div
-            onClick={() => setResetType('clean')}
-            style={{
-              padding: '12px',
-              borderRadius: 'var(--radius-md)',
-              border: resetType === 'clean' ? '1.5px solid var(--danger)' : '1px solid var(--border)',
-              background: resetType === 'clean' ? 'rgba(239, 68, 68, 0.08)' : 'var(--bg-card)',
-              cursor: 'pointer',
-              transition: 'all var(--transition-fast)'
-            }}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '4px' }}>
-              <Trash2 size={14} color="var(--danger)" />
-              <span style={{ fontSize: '0.82rem', fontWeight: 700, color: 'var(--text-primary)' }}>
-                সম্পূর্ণ খালি (Zero)
-              </span>
-            </div>
-            <p style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
-              সবকিছু শূন্য করে একদম ফ্রেশ শুরু হবে।
-            </p>
-          </div>
-
-          <div
-            onClick={() => setResetType('template')}
-            style={{
-              padding: '12px',
-              borderRadius: 'var(--radius-md)',
-              border: resetType === 'template' ? '1.5px solid var(--accent)' : '1px solid var(--border)',
-              background: resetType === 'template' ? 'rgba(99, 102, 241, 0.08)' : 'var(--bg-card)',
-              cursor: 'pointer',
-              transition: 'all var(--transition-fast)'
-            }}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '4px' }}>
-              <RotateCcw size={14} color="var(--accent)" />
-              <span style={{ fontSize: '0.82rem', fontWeight: 700, color: 'var(--text-primary)' }}>
-                ডিফল্ট টেমপ্লেট
-              </span>
-            </div>
-            <p style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
-              প্রাথমিক নমুনা শব্দ ও ভুলের লগ সহ রিস্টার্ট।
-            </p>
-          </div>
-        </div>
 
         {/* Confirmation Input Field */}
         <div style={{ marginBottom: '20px' }}>
@@ -202,7 +154,7 @@ export default function TotalResetModal({ isOpen, onClose, onConfirmReset }) {
               boxShadow: isConfirmed ? '0 0 16px rgba(239, 68, 68, 0.4)' : 'none'
             }}
           >
-            {isProcessing ? 'রিসেট হচ্ছে...' : 'হ্যাঁ, টোটাল রিসেট করুন'}
+            {isProcessing ? 'রিসেট হচ্ছে...' : 'হ্যাঁ, সম্পূর্ণ রিসেট করুন'}
           </button>
         </div>
       </div>

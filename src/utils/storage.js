@@ -10,6 +10,7 @@ import {
 import { getTodayDateString } from './dateUtils';
 
 const STORAGE_KEYS = {
+  VERSION: 'ert_storage_version',
   START_DATE: 'ert_start_date',
   THEME: 'ert_theme',
   DAILY_LOG: 'ert_daily_log',
@@ -19,12 +20,42 @@ const STORAGE_KEYS = {
   PROGRESS_TRACKER: 'ert_progress_tracker'
 };
 
+const CURRENT_VERSION = 'v2_clean';
+
 export const loadInitialState = () => {
   try {
     const today = getTodayDateString();
 
+    // Check version migration to strip legacy dummy data
+    const storedVersion = localStorage.getItem(STORAGE_KEYS.VERSION);
+    if (storedVersion !== CURRENT_VERSION) {
+      // Clear out legacy dummy vocabulary & error logs
+      const rawVocab = localStorage.getItem(STORAGE_KEYS.VOCABULARY);
+      if (rawVocab) {
+        try {
+          const parsed = JSON.parse(rawVocab);
+          // If only dummy words exist, purge them
+          const realWords = parsed.filter(w => !['Articulate', 'Bottleneck', 'Proactive', 'Refactor'].includes(w.word));
+          localStorage.setItem(STORAGE_KEYS.VOCABULARY, JSON.stringify(realWords));
+        } catch (e) {}
+      }
+
+      const rawErrors = localStorage.getItem(STORAGE_KEYS.ERROR_LOG);
+      if (rawErrors) {
+        try {
+          const parsed = JSON.parse(rawErrors);
+          const realErrors = parsed.filter(e => !e.wrongSentence?.includes('Yesterday I have completed') && !e.wrongSentence?.includes("He don't know"));
+          localStorage.setItem(STORAGE_KEYS.ERROR_LOG, JSON.stringify(realErrors));
+        } catch (e) {}
+      }
+
+      // Reset progress tracker to clean zeros
+      localStorage.setItem(STORAGE_KEYS.PROGRESS_TRACKER, JSON.stringify(INITIAL_PROGRESS_TRACKER));
+      localStorage.setItem(STORAGE_KEYS.VERSION, CURRENT_VERSION);
+    }
+
     const startDate = localStorage.getItem(STORAGE_KEYS.START_DATE) || today;
-    const theme = localStorage.getItem(STORAGE_KEYS.THEME) || 'system';
+    const theme = localStorage.getItem(STORAGE_KEYS.THEME) || 'dark';
 
     const savedDailyLog = localStorage.getItem(STORAGE_KEYS.DAILY_LOG);
     const dailyLog = savedDailyLog ? JSON.parse(savedDailyLog) : {
@@ -36,10 +67,10 @@ export const loadInitialState = () => {
     };
 
     const savedVocab = localStorage.getItem(STORAGE_KEYS.VOCABULARY);
-    const vocabulary = savedVocab ? JSON.parse(savedVocab) : INITIAL_VOCABULARY;
+    const vocabulary = savedVocab ? JSON.parse(savedVocab) : [];
 
     const savedErrors = localStorage.getItem(STORAGE_KEYS.ERROR_LOG);
-    const errorLog = savedErrors ? JSON.parse(savedErrors) : INITIAL_ERROR_LOG;
+    const errorLog = savedErrors ? JSON.parse(savedErrors) : [];
 
     const savedInterviews = localStorage.getItem(STORAGE_KEYS.INTERVIEW_DATA);
     const interviewData = savedInterviews ? JSON.parse(savedInterviews) : {};
@@ -60,10 +91,10 @@ export const loadInitialState = () => {
     console.error('Error loading initial state from localStorage:', err);
     return {
       startDate: getTodayDateString(),
-      theme: 'system',
+      theme: 'dark',
       dailyLog: {},
-      vocabulary: INITIAL_VOCABULARY,
-      errorLog: INITIAL_ERROR_LOG,
+      vocabulary: [],
+      errorLog: [],
       interviewData: {},
       progressTracker: INITIAL_PROGRESS_TRACKER
     };

@@ -328,68 +328,18 @@ export const INTERVIEW_QUESTIONS = [
   }
 ];
 
-export const INITIAL_VOCABULARY = [
-  {
-    id: 1,
-    word: "Articulate",
-    meaning: "স্পষ্ট ও সাবলীলভাবে মনের ভাব বা যুক্তি প্রকাশ করা (express ideas clearly)",
-    sentence: "I want to articulate my technical solutions clearly during client meetings.",
-    date: new Date().toISOString().split('T')[0],
-    reviewed: false
-  },
-  {
-    id: 2,
-    word: "Bottleneck",
-    meaning: "কাজের গতি বা পারফরম্যান্স বাধাগ্রস্ত করার মূল কারণ (a point of congestion or obstruction)",
-    sentence: "We identified that the unoptimized database query was the main bottleneck.",
-    date: new Date().toISOString().split('T')[0],
-    reviewed: true
-  },
-  {
-    id: 3,
-    word: "Proactive",
-    meaning: "সমস্যা তৈরি হওয়ার আগেই উদ্যোগী হয়ে পদক্ষেপ নেওয়া (taking action in anticipation)",
-    sentence: "I take a proactive approach to communication to keep clients informed.",
-    date: new Date().toISOString().split('T')[0],
-    reviewed: false
-  },
-  {
-    id: 4,
-    word: "Refactor",
-    meaning: "বাহ্যিক আচরণ পরিবর্তন না করে কোডের অভ্যন্তরীণ মান উন্নত করা (restructure existing code)",
-    sentence: "I refactored the legacy component to make it faster and easier to maintain.",
-    date: new Date().toISOString().split('T')[0],
-    reviewed: true
-  }
-];
+export const INITIAL_VOCABULARY = [];
 
-export const INITIAL_ERROR_LOG = [
-  {
-    id: 1,
-    date: new Date().toISOString().split('T')[0],
-    week: 1,
-    wrongSentence: "Yesterday I have completed the website header.",
-    correctSentence: "Yesterday I completed the website header.",
-    rule: "Specific past time indicator (Yesterday) takes Simple Past tense, not Present Perfect."
-  },
-  {
-    id: 2,
-    date: new Date().toISOString().split('T')[0],
-    week: 1,
-    wrongSentence: "He don't know how to configure WooCommerce tax.",
-    correctSentence: "He doesn't know how to configure WooCommerce tax.",
-    rule: "Third person singular subject (He) requires 'does not / doesn't', not 'don't'."
-  }
-];
+export const INITIAL_ERROR_LOG = [];
 
 export const INITIAL_PROGRESS_TRACKER = [
   {
     week: 1,
-    newWords: 20,
-    speakingMinutes: 75,
-    completedDays: 5,
-    repeatedMistakes: 2,
-    notes: "Week 1 kickoff went great. Focused on Present and Past tenses."
+    newWords: 0,
+    speakingMinutes: 0,
+    completedDays: 0,
+    repeatedMistakes: 0,
+    notes: ""
   },
   {
     week: 2,

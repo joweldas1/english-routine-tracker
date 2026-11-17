@@ -271,7 +271,7 @@ export default function App() {
   };
 
   // TOTAL FACTORY RESET
-  const handleTotalReset = (resetType = 'clean') => {
+  const handleTotalReset = () => {
     clearAllData();
 
     // Play subtle audio tone
@@ -287,40 +287,25 @@ export default function App() {
       }
     } catch (e) {}
 
-    if (resetType === 'clean') {
-      const emptyState = {
-        startDate: getTodayDateString(),
-        theme: 'dark',
-        dailyLog: {},
-        vocabulary: [],
-        errorLog: [],
-        interviewData: {},
-        progressTracker: INITIAL_PROGRESS_TRACKER.map((r) => ({
-          ...r,
-          newWords: 0,
-          speakingMinutes: 0,
-          completedDays: 0,
-          repeatedMistakes: 0,
-          notes: ''
-        }))
-      };
-      setAppState(emptyState);
-      saveStateToLocalStorage(emptyState);
-      showToast('টোটাল ফ্যাক্টরি রিসেট সম্পন্ন! সবকিছু শূন্য থেকে ফ্রেশ শুরু হলো।');
-    } else {
-      const templateState = {
-        startDate: getTodayDateString(),
-        theme: 'dark',
-        dailyLog: {},
-        vocabulary: INITIAL_VOCABULARY,
-        errorLog: INITIAL_ERROR_LOG,
-        interviewData: {},
-        progressTracker: INITIAL_PROGRESS_TRACKER
-      };
-      setAppState(templateState);
-      saveStateToLocalStorage(templateState);
-      showToast('ডিফল্ট টেমপ্লেট সহ অ্যাপটি রিস্টার্ট হলো!');
-    }
+    const emptyState = {
+      startDate: getTodayDateString(),
+      theme: 'dark',
+      dailyLog: {},
+      vocabulary: [],
+      errorLog: [],
+      interviewData: {},
+      progressTracker: INITIAL_PROGRESS_TRACKER.map((r) => ({
+        ...r,
+        newWords: 0,
+        speakingMinutes: 0,
+        completedDays: 0,
+        repeatedMistakes: 0,
+        notes: ''
+      }))
+    };
+    setAppState(emptyState);
+    saveStateToLocalStorage(emptyState);
+    showToast('টোটাল ফ্যাক্টরি রিসেট সম্পন্ন! সবকিছু শূন্য থেকে ফ্রেশ শুরু হলো।');
   };
 
   return (

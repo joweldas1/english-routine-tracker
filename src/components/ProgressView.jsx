@@ -37,9 +37,9 @@ export default function ProgressView({
       if (row.week === 1) {
         return {
           ...row,
-          newWords: totalVocab > 0 ? totalVocab : 15,
-          speakingMinutes: Math.max(row.speakingMinutes, completedDates * 15),
-          completedDays: Math.min(5, Math.max(row.completedDays, completedDates)),
+          newWords: totalVocab,
+          speakingMinutes: completedDates * 15,
+          completedDays: Math.min(5, completedDates),
           repeatedMistakes: totalErrors
         };
       }

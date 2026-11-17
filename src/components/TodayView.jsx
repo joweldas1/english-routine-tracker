@@ -40,33 +40,51 @@ export default function TodayView({
   daysDoneThisWeek,
   onNavigateTab
 }) {
-  const [dayOverride, setDayOverride] = useState(null);
   const [showRules, setShowRules] = useState(false);
 
-  const activeDayInfo = dayOverride ? getDayInfo(dayOverride) : getDayInfo();
+  const activeDayInfo = getDayInfo();
   const currentWeekPlan = WEEKS_PLAN.find((w) => w.week === currentWeek) || WEEKS_PLAN[0];
 
   // Today's record
   const dayRecord = dailyLog[todayStr] || { tasks: {}, minutesDone: 0, isDayComplete: false };
   const completedTasks = dayRecord.tasks || {};
 
-  // Calculate minutes completed today
+  // Calculate actual minutes completed today and dynamic target
   let minutesDone = 0;
-  DAILY_TASKS.forEach((t) => {
-    if (completedTasks[t.id]) {
-      minutesDone += t.duration;
-    }
-  });
+  let totalDailyTarget = TOTAL_DAILY_MINUTES;
+
+  if (activeDayInfo.isSaturday) {
+    totalDailyTarget = WEEKEND_ROUTINE.saturday.totalMinutes;
+    WEEKEND_ROUTINE.saturday.tasks.forEach((t) => {
+      if (completedTasks[t.id]) minutesDone += t.duration;
+    });
+  } else if (activeDayInfo.isSunday) {
+    totalDailyTarget = WEEKEND_ROUTINE.sunday.totalMinutes;
+    WEEKEND_ROUTINE.sunday.tasks.forEach((t) => {
+      if (completedTasks[t.id]) minutesDone += t.duration;
+    });
+  } else {
+    totalDailyTarget = TOTAL_DAILY_MINUTES;
+    DAILY_TASKS.forEach((t) => {
+      if (completedTasks[t.id]) minutesDone += t.duration;
+    });
+  }
 
   const handleTaskCheck = (taskId, duration) => {
     const wasCompleted = !!completedTasks[taskId];
     const willBeCompleted = !wasCompleted;
 
-    const otherTasksCount = DAILY_TASKS.filter(
+    const currentTasksList = activeDayInfo.isSaturday
+      ? WEEKEND_ROUTINE.saturday.tasks
+      : activeDayInfo.isSunday
+      ? WEEKEND_ROUTINE.sunday.tasks
+      : DAILY_TASKS;
+
+    const otherTasksCount = currentTasksList.filter(
       (t) => t.id !== taskId && completedTasks[t.id]
     ).length;
 
-    if (willBeCompleted && otherTasksCount === DAILY_TASKS.length - 1) {
+    if (willBeCompleted && otherTasksCount === currentTasksList.length - 1) {
       confetti({
         particleCount: 120,
         spread: 80,
@@ -79,7 +97,7 @@ export default function TodayView({
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-      {/* Top Banner: Date, Day, Current Week & Cyber Badges */}
+      {/* Top Banner: Date, Day, Current Week & Status */}
       <div className="card" style={{ padding: '16px 20px' }}>
         <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: '12px' }}>
           <div>
@@ -93,34 +111,19 @@ export default function TodayView({
               </span>
             </div>
             <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginTop: '3px', fontFamily: 'var(--font-mono)' }}>
-              {formatDisplayDate()} • TARGET: 80 MIN / DAY
+              {formatDisplayDate()} • TARGET: {totalDailyTarget} MIN / DAY
             </div>
           </div>
 
-          {/* Quick Day Mode Switcher */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', fontFamily: 'var(--font-mono)' }}>VIEW:</span>
-            <button
-              onClick={() => setDayOverride(null)}
-              className={`btn ${!dayOverride ? 'btn-primary' : 'btn-secondary'}`}
-              style={{ padding: '4px 10px', fontSize: '0.74rem', height: '28px' }}
-            >
-              আজ
-            </button>
-            <button
-              onClick={() => setDayOverride('2026-11-21')} // Saturday
-              className={`btn ${dayOverride === '2026-11-21' ? 'btn-primary' : 'btn-secondary'}`}
-              style={{ padding: '4px 10px', fontSize: '0.74rem', height: '28px' }}
-            >
-              শনিবার
-            </button>
-            <button
-              onClick={() => setDayOverride('2026-11-22')} // Sunday
-              className={`btn ${dayOverride === '2026-11-22' ? 'btn-primary' : 'btn-secondary'}`}
-              style={{ padding: '4px 10px', fontSize: '0.74rem', height: '28px' }}
-            >
-              রবিবার
-            </button>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <span className="week-stat-pill">
+              <Check size={14} color="var(--success)" />
+              {daysDoneThisWeek}/5 দিন সম্পন্ন
+            </span>
+            <span className="pill-badge pill-streak">
+              <Flame size={14} />
+              {streak}d
+            </span>
           </div>
         </div>
       </div>
@@ -180,8 +183,8 @@ export default function TodayView({
       {/* Progress Ring Card */}
       <div className="progress-ring-container">
         <ProgressRing
-          minutesDone={activeDayInfo.isSaturday ? 45 : minutesDone}
-          totalMinutes={activeDayInfo.isSaturday ? WEEKEND_ROUTINE.saturday.totalMinutes : TOTAL_DAILY_MINUTES}
+          minutesDone={minutesDone}
+          totalMinutes={totalDailyTarget}
         />
         <div className="progress-info">
           <h3>
@@ -190,9 +193,9 @@ export default function TodayView({
             {activeDayInfo.isSunday && 'রবিবারের হালকা লিসেনিং ও রিলাক্স (Sunday Rest)'}
           </h3>
           <p>
-            {activeDayInfo.isWeekday && `দৈনিক ৮০ মিনিটের মধ্যে ${minutesDone} মিনিট সম্পন্ন হয়েছে।`}
-            {activeDayInfo.isSaturday && 'ভুল পর্যালোচনা, শব্দ রিভিশন ও ৪৫ মিনিটের মক ইন্টারভিউ।'}
-            {activeDayInfo.isSunday && 'কোনো মানসিক চাপ ছাড়া হালকা লিসেনিং উপভোগ করুন।'}
+            {activeDayInfo.isWeekday && `দৈনিক ${totalDailyTarget} মিনিটের মধ্যে ${minutesDone} মিনিট সম্পন্ন হয়েছে।`}
+            {activeDayInfo.isSaturday && `শনিবারের মোট ${totalDailyTarget} মিনিটের মধ্যে ${minutesDone} মিনিট সম্পন্ন হয়েছে।`}
+            {activeDayInfo.isSunday && `রবিবারের ${totalDailyTarget} মিনিটের মধ্যে ${minutesDone} মিনিট সম্পন্ন হয়েছে।`}
           </p>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
